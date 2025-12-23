@@ -34,3 +34,29 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment variables
+
+This project uses Stripe + Prisma. **Do not commit secrets**. Your `.gitignore` already ignores `.env*`.
+
+Copy `.env.example` to `.env.local` for Next.js and to `.env` for Prisma migrations:
+
+- Next.js reads: `.env.local`
+- Prisma CLI reads: `.env` (recommended)
+
+Required variables:
+
+- `DATABASE_URL` (direct Postgres URL, starts with `postgres://...`)
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_TSHIRT`
+- `STRIPE_PRICE_SOCKS`
+- `NEXT_PUBLIC_BASE_URL` (no trailing slash)
+
+### Prisma migrations
+
+After setting `DATABASE_URL` locally:
+
+- `npx prisma migrate dev --name init`
+
+Commit the generated `prisma/migrations/` folder.
