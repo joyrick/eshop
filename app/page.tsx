@@ -273,15 +273,11 @@ export default function HomePage() {
               </button>
 
               <button
-                onClick={() => {
-                  addOne("t-shirt");
-                  void checkout();
-                }}
+                onClick={() => setIsCartOpen(true)}
                 disabled={isLoading}
                 style={{
-                  background: "#111827",
-                  color: "#fff",
-                  border: "none",
+                  border: "1px solid #e5e7eb",
+                  background: "#fff",
                   padding: "12px 14px",
                   borderRadius: 12,
                   cursor: "pointer",
@@ -289,7 +285,7 @@ export default function HomePage() {
                   minWidth: 180,
                 }}
               >
-                {isLoading ? "Redirecting…" : "Pay (Checkout)"}
+                View cart
               </button>
             </div>
 
@@ -320,6 +316,118 @@ export default function HomePage() {
           </section>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer style={{ marginTop: 40, background: "#0f172a", color: "#e2e8f0" }}>
+        <div
+          style={{
+            maxWidth: 1080,
+            margin: "0 auto",
+            padding: "40px 16px",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            gap: 24,
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 10, height: 10, background: "#e11d48", borderRadius: 3 }} />
+              <strong style={{ letterSpacing: 0.5, color: "#fff" }}>FRAME X</strong>
+            </div>
+            <p style={{ marginTop: 12, lineHeight: 1.7, color: "#cbd5e1" }}>
+              Minimal one-page checkout demo powered by Stripe Checkout. Orders are confirmed via webhook.
+            </p>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Info</div>
+            <div style={{ display: "grid", gap: 8, color: "#cbd5e1" }}>
+              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>About</a>
+              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Terms</a>
+              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Contact</a>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Products</div>
+            <div style={{ display: "grid", gap: 8, color: "#cbd5e1" }}>
+              <button
+                onClick={() => {
+                  addOne("t-shirt");
+                  setIsCartOpen(true);
+                }}
+                disabled={isLoading}
+                style={{
+                  textAlign: "left",
+                  border: "none",
+                  background: "transparent",
+                  color: "inherit",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                T-shirt
+              </button>
+              <button
+                onClick={() => {
+                  addOne("socks");
+                  setIsCartOpen(true);
+                }}
+                disabled={isLoading}
+                style={{
+                  textAlign: "left",
+                  border: "none",
+                  background: "transparent",
+                  color: "inherit",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                Socks
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Contact</div>
+            <div style={{ display: "grid", gap: 8, color: "#cbd5e1" }}>
+              <div>
+                <span style={{ opacity: 0.8 }}>Email:</span> info@example.com
+              </div>
+              <div>
+                <span style={{ opacity: 0.8 }}>Phone:</span> +421 000 000 000
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                <a href="#" style={{ color: "#e2e8f0", textDecoration: "none", border: "1px solid rgba(226,232,240,0.25)", padding: "6px 10px", borderRadius: 10 }}>
+                  FB
+                </a>
+                <a href="#" style={{ color: "#e2e8f0", textDecoration: "none", border: "1px solid rgba(226,232,240,0.25)", padding: "6px 10px", borderRadius: 10 }}>
+                  IG
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ borderTop: "1px solid rgba(226,232,240,0.12)" }}>
+          <div
+            style={{
+              maxWidth: 1080,
+              margin: "0 auto",
+              padding: "14px 16px",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+              color: "#94a3b8",
+              fontSize: 13,
+            }}
+          >
+            <div>© {new Date().getFullYear()} Frame X. All rights reserved.</div>
+            <div>Payments handled by Stripe Checkout.</div>
+          </div>
+        </div>
+      </footer>
 
       {/* Sidebar cart */}
       <div
