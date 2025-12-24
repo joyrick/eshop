@@ -7,6 +7,7 @@ type CartItemId = "t-shirt" | "socks";
 type Product = {
   id: CartItemId;
   name: string;
+  description: string;
   unitAmount: number; // cents
 };
 
@@ -16,8 +17,18 @@ type CartLine = {
 };
 
 const PRODUCTS: readonly Product[] = [
-  { id: "t-shirt", name: "T-shirt", unitAmount: 1000 },
-  { id: "socks", name: "Socks", unitAmount: 500 },
+  {
+    id: "t-shirt",
+    name: "T-shirt",
+    description: "Soft, premium cotton tee. Minimal design. Built for everyday wear.",
+    unitAmount: 1000,
+  },
+  {
+    id: "socks",
+    name: "Socks",
+    description: "Comfortable crew socks with a snug fit. Perfect everyday pair.",
+    unitAmount: 500,
+  },
 ] as const;
 
 const eur = new Intl.NumberFormat("en-IE", {
@@ -29,15 +40,22 @@ function formatEur(cents: number) {
   return eur.format(cents / 100);
 }
 
-const CART_STORAGE_KEY = "demo_cart_v1";
+const CART_STORAGE_KEY = "demo_cart_v2";
+
+function clampQty(n: number) {
+  return Math.max(0, Math.min(20, Math.floor(n || 0)));
+}
 
 export default function HomePage() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
+  const getProduct = (id: CartItemId) => PRODUCTS.find((p) => p.id === id)!;
+
+  // Hydrate cart from localStorage
   useEffect(() => {
-    // Hydrate cart from localStorage on first client render
     try {
       const raw = localStorage.getItem(CART_STORAGE_KEY);
       if (raw) {
@@ -46,24 +64,14 @@ export default function HomePage() {
           const next: CartLine[] = parsed
             .filter((x: any) => x && (x.id === "t-shirt" || x.id === "socks"))
             .map((x: any) => ({ id: x.id as CartItemId, quantity: Number(x.quantity) }))
-            .map((l) => ({ ...l, quantity: Math.max(0, Math.min(20, Math.floor(l.quantity || 0))) }))
+            .map((l) => ({ ...l, quantity: clampQty(l.quantity) }))
             .filter((l) => l.quantity > 0);
-          if (next.length > 0) {
-            setCart(next);
-            setIsHydrated(true);
-            return;
-          }
+          setCart(next);
         }
       }
     } catch {
-      // ignore corrupted storage
+      // ignore
     }
-
-    // Default cart
-    setCart([
-      { id: "t-shirt", quantity: 1 },
-      { id: "socks", quantity: 2 },
-    ]);
     setIsHydrated(true);
   }, []);
 
@@ -72,14 +80,12 @@ export default function HomePage() {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     } catch {
-      // ignore quota / storage errors
+      // ignore
     }
   }, [cart, isHydrated]);
 
-  const getProduct = (id: CartItemId) => PRODUCTS.find((p) => p.id === id)!;
-
   const setQty = (id: CartItemId, nextQty: number) => {
-    const qty = Math.max(0, Math.min(20, Math.floor(nextQty || 0)));
+    const qty = clampQty(nextQty);
     setCart((prev) => {
       const exists = prev.find((l) => l.id === id);
       if (!exists && qty === 0) return prev;
@@ -92,6 +98,7 @@ export default function HomePage() {
   const addOne = (id: CartItemId) => {
     const line = cart.find((l) => l.id === id);
     setQty(id, (line?.quantity ?? 0) + 1);
+    setIsCartOpen(true);
   };
 
   const removeOne = (id: CartItemId) => {
@@ -99,20 +106,24 @@ export default function HomePage() {
     setQty(id, (line?.quantity ?? 0) - 1);
   };
 
-  const subtotal = cart.reduce((sum, line) => {
-    const p = getProduct(line.id);
-    return sum + p.unitAmount * line.quantity;
-  }, 0);
+  const cartCount = cart.reduce((sum, l) => sum + l.quantity, 0);
 
-  const hasItems = cart.some((l) => l.quantity > 0);
+  const subtotal = useMemo(() => {
+    return cart.reduce((sum, line) => {
+      const p = getProduct(line.id);
+      return sum + p.unitAmount * line.quantity;
+    }, 0);
+  }, [cart]);
+
+  const normalizedForCheckout = useMemo(() => {
+    return cart
+      .map((l) => ({ id: l.id, quantity: clampQty(l.quantity) }))
+      .filter((l) => l.quantity > 0);
+  }, [cart]);
 
   const checkout = async () => {
-    // Normalize just before sending (no zero qty, integers only)
-    const normalized = cart
-      .map((l) => ({ id: l.id, quantity: Math.max(0, Math.floor(l.quantity || 0)) }))
-      .filter((l) => l.quantity > 0);
-
-    if (normalized.length === 0) {
+    if (normalizedForCheckout.length === 0) {
+      setIsCartOpen(true);
       alert("Cart is empty");
       return;
     }
@@ -122,12 +133,9 @@ export default function HomePage() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: normalized,
-        }),
+        body: JSON.stringify({ items: normalizedForCheckout }),
       });
 
-      // Avoid crashing if the server returns HTML/text (e.g., 500 error page)
       const raw = await res.text();
       let data: any = null;
       try {
@@ -143,7 +151,7 @@ export default function HomePage() {
       }
 
       if (data?.url) {
-        window.location.href = data.url; // redirect to Stripe-hosted Checkout
+        window.location.href = data.url;
       } else {
         alert(data?.error || "Checkout error");
       }
@@ -152,82 +160,333 @@ export default function HomePage() {
     }
   };
 
+  // One-page template: single primary product section + cart sidebar
+  const mainProduct = getProduct("t-shirt");
+
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", fontFamily: "system-ui", padding: "0 16px" }}>
-      <h1 style={{ marginBottom: 8 }}>Shop</h1>
-      <p style={{ marginTop: 0, opacity: 0.8 }}>
-        Demo cart with two products. Prices shown here are for display; Stripe charges using server-side Price IDs.
-      </p>
+    <div style={{ minHeight: "100vh", background: "#fff" }}>
+      {/* Top bar */}
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(10px)",
+          borderBottom: "1px solid #eef2f7",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1080,
+            margin: "0 auto",
+            padding: "14px 16px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 10, height: 10, background: "#e11d48", borderRadius: 3 }} />
+            <strong style={{ letterSpacing: 0.5 }}>FRAME X</strong>
+          </div>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginTop: 18 }}>
-        {PRODUCTS.map((p) => {
-          const line = cart.find((l) => l.id === p.id);
-          const qty = line?.quantity ?? 0;
-          return (
-            <div key={p.id} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <h3 style={{ margin: 0 }}>{p.name}</h3>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatEur(p.unitAmount)}</span>
-              </div>
+          <button
+            onClick={() => setIsCartOpen(true)}
+            style={{
+              border: "1px solid #e5e7eb",
+              background: "#fff",
+              padding: "8px 12px",
+              borderRadius: 10,
+              cursor: "pointer",
+            }}
+            aria-label="Open cart"
+          >
+            Cart ({cartCount})
+          </button>
+        </div>
+      </header>
 
-              <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12 }}>
-                <button
-                  onClick={() => removeOne(p.id)}
-                  disabled={isLoading || qty === 0}
-                  style={{ padding: "6px 10px" }}
-                >
-                  −
-                </button>
-                <input
-                  inputMode="numeric"
-                  value={qty}
-                  onChange={(e) => setQty(p.id, Number(e.target.value))}
-                  disabled={isLoading}
-                  style={{ width: 64, padding: "6px 8px" }}
-                />
-                <button
-                  onClick={() => addOne(p.id)}
-                  disabled={isLoading || qty >= 20}
-                  style={{ padding: "6px 10px" }}
-                >
-                  +
-                </button>
+      {/* Main content */}
+      <main style={{ maxWidth: 1080, margin: "0 auto", padding: "28px 16px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.2fr 1fr",
+            gap: 28,
+            alignItems: "start",
+          }}
+        >
+          {/* Product image */}
+          <div
+            style={{
+              borderRadius: 18,
+              overflow: "hidden",
+              border: "1px solid #eef2f7",
+              boxShadow: "0 18px 40px rgba(0,0,0,0.10)",
+              background: "#f8fafc",
+              minHeight: 520,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <img
+              src="/next.svg"
+              alt={mainProduct.name}
+              style={{ width: "66%", height: "auto", opacity: 0.9 }}
+            />
+          </div>
 
-                <button
-                  onClick={() => setQty(p.id, 0)}
-                  disabled={isLoading || qty === 0}
-                  style={{ marginLeft: "auto", padding: "6px 10px" }}
-                >
-                  Remove
-                </button>
-              </div>
-
-              <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13 }}>
-                Line total: <b>{formatEur(p.unitAmount * qty)}</b>
-              </div>
+          {/* Product details */}
+          <section style={{ paddingTop: 8 }}>
+            <div style={{ fontSize: 12, letterSpacing: 1.4, color: "#ef4444", fontWeight: 700 }}>
+              LIMITED DROP
             </div>
-          );
-        })}
-      </section>
+            <h1 style={{ margin: "10px 0 8px", fontSize: 38, lineHeight: 1.08 }}>
+              {mainProduct.name}
+            </h1>
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              {mainProduct.description}
+            </p>
 
-      <section style={{ marginTop: 22, borderTop: "1px solid #eef2f7", paddingTop: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-          <span>Subtotal</span>
-          <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatEur(subtotal)}</b>
+            <div style={{ marginTop: 16, fontSize: 22, fontWeight: 700 }}>
+              {formatEur(mainProduct.unitAmount)}
+            </div>
+
+            <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                onClick={() => addOne("t-shirt")}
+                disabled={isLoading}
+                style={{
+                  background: "#dc2626",
+                  color: "#fff",
+                  border: "none",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  minWidth: 180,
+                }}
+              >
+                Add to cart
+              </button>
+
+              <button
+                onClick={() => {
+                  addOne("t-shirt");
+                  void checkout();
+                }}
+                disabled={isLoading}
+                style={{
+                  background: "#111827",
+                  color: "#fff",
+                  border: "none",
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  minWidth: 180,
+                }}
+              >
+                {isLoading ? "Redirecting…" : "Pay (Checkout)"}
+              </button>
+            </div>
+
+            {/* Optional second item */}
+            <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid #eef2f7" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <h3 style={{ margin: 0 }}>Add socks</h3>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatEur(getProduct("socks").unitAmount)}</span>
+              </div>
+              <p style={{ marginTop: 6, color: "#64748b", lineHeight: 1.6 }}>
+                {getProduct("socks").description}
+              </p>
+              <button
+                onClick={() => addOne("socks")}
+                disabled={isLoading}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  background: "#fff",
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Add socks to cart
+              </button>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* Sidebar cart */}
+      <div
+        aria-hidden={!isCartOpen}
+        onClick={() => setIsCartOpen(false)}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: isCartOpen ? "rgba(0,0,0,0.35)" : "transparent",
+          pointerEvents: isCartOpen ? "auto" : "none",
+          transition: "background 200ms ease",
+          zIndex: 50,
+        }}
+      />
+
+      <aside
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          height: "100vh",
+          width: "min(420px, 92vw)",
+          background: "#fff",
+          borderLeft: "1px solid #eef2f7",
+          boxShadow: "-20px 0 50px rgba(0,0,0,0.12)",
+          transform: isCartOpen ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 220ms ease",
+          zIndex: 60,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{ padding: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <strong style={{ fontSize: 16 }}>Cart</strong>
+          <button
+            onClick={() => setIsCartOpen(false)}
+            style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18 }}
+            aria-label="Close cart"
+          >
+            ×
+          </button>
         </div>
 
-        <button
-          onClick={checkout}
-          disabled={isLoading || !hasItems}
-          style={{ padding: "10px 14px", width: "100%" }}
-        >
-          {isLoading ? "Redirecting…" : "Checkout (Stripe Hosted)"}
-        </button>
+        <div style={{ padding: "0 16px 16px", overflow: "auto", flex: 1 }}>
+          {normalizedForCheckout.length === 0 ? (
+            <div style={{ padding: 12, background: "#f8fafc", border: "1px solid #eef2f7", borderRadius: 12, color: "#475569" }}>
+              Cart is empty.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {normalizedForCheckout.map((line) => {
+                const p = getProduct(line.id);
+                return (
+                  <div
+                    key={line.id}
+                    style={{
+                      border: "1px solid #eef2f7",
+                      borderRadius: 14,
+                      padding: 12,
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 46,
+                        height: 46,
+                        borderRadius: 12,
+                        background: "#f1f5f9",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        color: "#0f172a",
+                      }}
+                    >
+                      {p.id === "t-shirt" ? "T" : "S"}
+                    </div>
 
-        <p style={{ marginTop: 16, opacity: 0.8, fontSize: 14, cursor: "default" }}>
-          Tip: Apple Pay / Google Pay appear automatically on supported devices once enabled in Stripe.
-        </p>
-      </section>
-    </main>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <div>
+                          <div style={{ fontWeight: 700 }}>{p.name}</div>
+                          <div style={{ opacity: 0.7, fontSize: 13 }}>{formatEur(p.unitAmount)}</div>
+                        </div>
+                        <div style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>
+                          {formatEur(p.unitAmount * line.quantity)}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                        <button
+                          onClick={() => removeOne(line.id)}
+                          disabled={isLoading}
+                          style={{ border: "1px solid #e5e7eb", background: "#fff", padding: "6px 10px", borderRadius: 10, cursor: "pointer" }}
+                        >
+                          −
+                        </button>
+                        <input
+                          inputMode="numeric"
+                          value={line.quantity}
+                          onChange={(e) => setQty(line.id, Number(e.target.value))}
+                          disabled={isLoading}
+                          style={{ width: 70, padding: "7px 9px", borderRadius: 10, border: "1px solid #e5e7eb" }}
+                        />
+                        <button
+                          onClick={() => addOne(line.id)}
+                          disabled={isLoading || line.quantity >= 20}
+                          style={{ border: "1px solid #e5e7eb", background: "#fff", padding: "6px 10px", borderRadius: 10, cursor: "pointer" }}
+                        >
+                          +
+                        </button>
+
+                        <button
+                          onClick={() => setQty(line.id, 0)}
+                          disabled={isLoading}
+                          style={{ marginLeft: "auto", border: "none", background: "transparent", cursor: "pointer", color: "#ef4444", fontWeight: 700 }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={{ borderTop: "1px solid #eef2f7", padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+            <span style={{ color: "#475569" }}>Subtotal</span>
+            <strong style={{ fontVariantNumeric: "tabular-nums" }}>{formatEur(subtotal)}</strong>
+          </div>
+
+          <button
+            onClick={checkout}
+            disabled={isLoading || normalizedForCheckout.length === 0}
+            style={{
+              width: "100%",
+              background: "#111827",
+              color: "#fff",
+              border: "none",
+              padding: "12px 14px",
+              borderRadius: 12,
+              cursor: "pointer",
+              fontWeight: 800,
+            }}
+          >
+            {isLoading ? "Redirecting…" : "Pay (Stripe Checkout)"}
+          </button>
+
+          <p style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>
+            Stripe charges using server-side Price IDs.
+          </p>
+        </div>
+      </aside>
+
+      {/* Basic responsive tweak */}
+      <style>{`
+        @media (max-width: 900px) {
+          main > div {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
