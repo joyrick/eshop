@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         quantity: i.quantity,
       })),
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cancelled?order_id=${orderId}`,
       metadata: { orderId },
       // Optional: helps prevent some mismatches; only allow payments in EUR.
       currency: "eur",
