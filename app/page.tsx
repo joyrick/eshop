@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type CartItemId = "t-shirt" | "socks";
+type CartItemId = "ferrari_key_frame" | "porsche_key_frame";
 
 type Product = {
   id: CartItemId;
@@ -18,16 +18,16 @@ type CartLine = {
 
 const PRODUCTS: readonly Product[] = [
   {
-    id: "t-shirt",
-    name: "T-shirt",
-    description: "Soft, premium cotton tee. Minimal design. Built for everyday wear.",
-    unitAmount: 1000,
+    id: "ferrari_key_frame",
+    name: "Ferrari key in frame",
+    description: "A premium framed key display piece — a bold desk/office statement.",
+    unitAmount: 2999,
   },
   {
-    id: "socks",
-    name: "Socks",
-    description: "Comfortable crew socks with a snug fit. Perfect everyday pair.",
-    unitAmount: 500,
+    id: "porsche_key_frame",
+    name: "Porsche key in frame",
+    description: "Clean, minimal framed key display — perfect for enthusiasts.",
+    unitAmount: 1999,
   },
 ] as const;
 
@@ -51,6 +51,7 @@ export default function HomePage() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<CartItemId>("ferrari_key_frame");
 
   const getProduct = (id: CartItemId) => PRODUCTS.find((p) => p.id === id)!;
 
@@ -62,7 +63,7 @@ export default function HomePage() {
         const parsed = JSON.parse(raw) as unknown;
         if (Array.isArray(parsed)) {
           const next: CartLine[] = parsed
-            .filter((x: any) => x && (x.id === "t-shirt" || x.id === "socks"))
+            .filter((x: any) => x && (x.id === "ferrari_key_frame" || x.id === "porsche_key_frame"))
             .map((x: any) => ({ id: x.id as CartItemId, quantity: Number(x.quantity) }))
             .map((l) => ({ ...l, quantity: clampQty(l.quantity) }))
             .filter((l) => l.quantity > 0);
@@ -160,8 +161,24 @@ export default function HomePage() {
     }
   };
 
-  // One-page template: single primary product section + cart sidebar
-  const mainProduct = getProduct("t-shirt");
+  // One-page template: product gallery selector + cart sidebar
+  const mainProduct = getProduct(selectedProductId);
+
+  const MAIN_IMAGES: Record<CartItemId, string> = {
+    ferrari_key_frame: "/gallery/ferrari_key.png",
+    porsche_key_frame: "/gallery/porsche-frame.png",
+  };
+
+  const thumbStyle = (active: boolean): React.CSSProperties => ({
+    width: 92,
+    height: 70,
+    borderRadius: 12,
+    border: active ? "2px solid #ef4444" : "1px solid #e5e7eb",
+    overflow: "hidden",
+    background: "#f8fafc",
+    cursor: "pointer",
+    boxShadow: active ? "0 0 0 3px rgba(239,68,68,0.15)" : "none",
+  });
 
   return (
     <div style={{ minHeight: "100vh", background: "#fff" }}>
@@ -208,7 +225,7 @@ export default function HomePage() {
       </header>
 
       {/* Main content */}
-      <main style={{ maxWidth: 1080, margin: "0 auto", padding: "28px 16px" }}>
+      <main style={{ maxWidth: 1080, margin: "0 auto", padding: "28px 16px", minHeight: "calc(100vh - 60px)" }}>
         <div
           style={{
             display: "grid",
@@ -232,31 +249,33 @@ export default function HomePage() {
             }}
           >
             <img
-              src="/next.svg"
+              src={MAIN_IMAGES[selectedProductId]}
               alt={mainProduct.name}
-              style={{ width: "66%", height: "auto", opacity: 0.9 }}
+              style={{
+                width: "66%",
+                height: "auto",
+                maxHeight: "72%",
+                objectFit: "contain",
+                opacity: 0.98,
+              }}
             />
           </div>
 
           {/* Product details */}
           <section style={{ paddingTop: 8 }}>
             <div style={{ fontSize: 12, letterSpacing: 1.4, color: "#ef4444", fontWeight: 700 }}>
-              LIMITED DROP
+              DARČEKOVÝ RÁMČEK
             </div>
-            <h1 style={{ margin: "10px 0 8px", fontSize: 38, lineHeight: 1.08 }}>
-              {mainProduct.name}
-            </h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              {mainProduct.description}
-            </p>
+            <h1 style={{ margin: "10px 0 8px", fontSize: 38, lineHeight: 1.08 }}>{mainProduct.name}</h1>
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{mainProduct.description}</p>
 
-            <div style={{ marginTop: 16, fontSize: 22, fontWeight: 700 }}>
+            <div style={{ marginTop: 14, fontSize: 22, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
               {formatEur(mainProduct.unitAmount)}
             </div>
 
             <div style={{ marginTop: 18, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
-                onClick={() => addOne("t-shirt")}
+                onClick={() => addOne(selectedProductId)}
                 disabled={isLoading}
                 style={{
                   background: "#dc2626",
@@ -269,7 +288,7 @@ export default function HomePage() {
                   minWidth: 180,
                 }}
               >
-                Add to cart
+                Pridať do košíka
               </button>
 
               <button
@@ -285,33 +304,58 @@ export default function HomePage() {
                   minWidth: 180,
                 }}
               >
-                View cart
+                Zobraziť košík
               </button>
             </div>
 
-            {/* Optional second item */}
-            <div style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid #eef2f7" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <h3 style={{ margin: 0 }}>Add socks</h3>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatEur(getProduct("socks").unitAmount)}</span>
+            {/* Gallery selector */}
+            <div style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid #eef2f7" }}>
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Galéria – kliknite pre prepnutie edície</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedProductId("ferrari_key_frame")}
+                  disabled={isLoading}
+                  style={{ border: "none", background: "transparent", padding: 0 }}
+                  aria-label="Select Ferrari edition"
+                >
+                  <div style={thumbStyle(selectedProductId === "ferrari_key_frame")}>
+                    <img
+                      src="/gallery/ferrari_key.png"
+                      alt="Ferrari key in frame thumbnail"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12, color: "#64748b", textAlign: "center" }}>
+                    Ferrari<br />
+                    <span style={{ fontVariantNumeric: "tabular-nums", color: "#0f172a", fontWeight: 700 }}>
+                      {formatEur(getProduct("ferrari_key_frame").unitAmount)}
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedProductId("porsche_key_frame")}
+                  disabled={isLoading}
+                  style={{ border: "none", background: "transparent", padding: 0 }}
+                  aria-label="Select Porsche edition"
+                >
+                  <div style={thumbStyle(selectedProductId === "porsche_key_frame")}>
+                    <img
+                      src="/gallery/porsche-frame.png"
+                      alt="Porsche key in frame thumbnail"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12, color: "#64748b", textAlign: "center" }}>
+                    Porsche<br />
+                    <span style={{ fontVariantNumeric: "tabular-nums", color: "#0f172a", fontWeight: 700 }}>
+                      {formatEur(getProduct("porsche_key_frame").unitAmount)}
+                    </span>
+                  </div>
+                </button>
               </div>
-              <p style={{ marginTop: 6, color: "#64748b", lineHeight: 1.6 }}>
-                {getProduct("socks").description}
-              </p>
-              <button
-                onClick={() => addOne("socks")}
-                disabled={isLoading}
-                style={{
-                  border: "1px solid #e5e7eb",
-                  background: "#fff",
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  cursor: "pointer",
-                  fontWeight: 600,
-                }}
-              >
-                Add socks to cart
-              </button>
             </div>
           </section>
         </div>
@@ -330,78 +374,67 @@ export default function HomePage() {
           }}
         >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 10, height: 10, background: "#e11d48", borderRadius: 3 }} />
-              <strong style={{ letterSpacing: 0.5, color: "#fff" }}>FRAME X</strong>
-            </div>
-            <p style={{ marginTop: 12, lineHeight: 1.7, color: "#cbd5e1" }}>
-              Minimal one-page checkout demo powered by Stripe Checkout. Orders are confirmed via webhook.
-            </p>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Info</div>
+            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Informácie</div>
             <div style={{ display: "grid", gap: 8, color: "#cbd5e1" }}>
-              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>About</a>
-              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Terms</a>
-              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>Contact</a>
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Products</div>
-            <div style={{ display: "grid", gap: 8, color: "#cbd5e1" }}>
-              <button
-                onClick={() => {
-                  addOne("t-shirt");
-                  setIsCartOpen(true);
-                }}
-                disabled={isLoading}
-                style={{
-                  textAlign: "left",
-                  border: "none",
-                  background: "transparent",
-                  color: "inherit",
-                  padding: 0,
-                  cursor: "pointer",
-                }}
-              >
-                T-shirt
-              </button>
-              <button
-                onClick={() => {
-                  addOne("socks");
-                  setIsCartOpen(true);
-                }}
-                disabled={isLoading}
-                style={{
-                  textAlign: "left",
-                  border: "none",
-                  background: "transparent",
-                  color: "inherit",
-                  padding: 0,
-                  cursor: "pointer",
-                }}
-              >
-                Socks
-              </button>
+              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
+                O nás
+              </a>
+              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
+                Obchodné podmienky
+              </a>
+              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
+                Kontakty
+              </a>
+              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
+                Veľkoobchodný predaj
+              </a>
             </div>
           </div>
 
           <div>
-            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Contact</div>
-            <div style={{ display: "grid", gap: 8, color: "#cbd5e1" }}>
-              <div>
-                <span style={{ opacity: 0.8 }}>Email:</span> info@example.com
-              </div>
-              <div>
-                <span style={{ opacity: 0.8 }}>Phone:</span> +421 000 000 000
-              </div>
+            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Adresa</div>
+            <div style={{ display: "grid", gap: 8, color: "#cbd5e1", lineHeight: 1.6 }}>
+              <div>IČO: 34689427</div>
+              <div>DIČ: 1026215124</div>
+              <div style={{ marginTop: 4, color: "#fff", fontWeight: 700 }}>Výdajné miesto:</div>
+              <div>Hontianska cesta č 83</div>
+              <div>93601 Šahy</div>
+              <div>Slovensko</div>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Kontakty</div>
+            <div style={{ display: "grid", gap: 8, color: "#cbd5e1", lineHeight: 1.6 }}>
+              <div style={{ color: "#fff", fontWeight: 700 }}>Štefan Lacko</div>
+              <div style={{ color: "#f87171", fontWeight: 800, letterSpacing: 0.3 }}>0905 486 452</div>
+              <div>9:00 - 18:00</div>
+              <a href="mailto:info@humornedarceky.sk" style={{ color: "inherit", textDecoration: "none" }}>
+                info@humornedarceky.sk
+              </a>
               <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-                <a href="#" style={{ color: "#e2e8f0", textDecoration: "none", border: "1px solid rgba(226,232,240,0.25)", padding: "6px 10px", borderRadius: 10 }}>
+                <a
+                  href="#"
+                  style={{
+                    color: "#e2e8f0",
+                    textDecoration: "none",
+                    border: "1px solid rgba(226,232,240,0.25)",
+                    padding: "6px 10px",
+                    borderRadius: 10,
+                  }}
+                >
                   FB
                 </a>
-                <a href="#" style={{ color: "#e2e8f0", textDecoration: "none", border: "1px solid rgba(226,232,240,0.25)", padding: "6px 10px", borderRadius: 10 }}>
+                <a
+                  href="#"
+                  style={{
+                    color: "#e2e8f0",
+                    textDecoration: "none",
+                    border: "1px solid rgba(226,232,240,0.25)",
+                    padding: "6px 10px",
+                    borderRadius: 10,
+                  }}
+                >
                   IG
                 </a>
               </div>
@@ -416,15 +449,14 @@ export default function HomePage() {
               margin: "0 auto",
               padding: "14px 16px",
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent: "center",
               gap: 12,
               flexWrap: "wrap",
               color: "#94a3b8",
               fontSize: 13,
             }}
           >
-            <div>© {new Date().getFullYear()} Frame X. All rights reserved.</div>
-            <div>Payments handled by Stripe Checkout.</div>
+            <div>© {new Date().getFullYear()} Frame X. Všetky práva vyhradené.</div>
           </div>
         </div>
       </footer>
@@ -505,7 +537,7 @@ export default function HomePage() {
                         color: "#0f172a",
                       }}
                     >
-                      {p.id === "t-shirt" ? "T" : "S"}
+                      {p.id === "ferrari_key_frame" ? "F" : "P"}
                     </div>
 
                     <div style={{ flex: 1 }}>

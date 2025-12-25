@@ -1,21 +1,27 @@
 export type CatalogItem = {
   name: string;
-  priceId: string;
+  priceId?: string;
 };
 
-function requireEnv(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing env var: ${name}`);
-  return v;
+function getEnv(name: string): string | undefined {
+  return process.env[name];
 }
 
 export const CATALOG: Record<string, CatalogItem> = {
   "t-shirt": {
     name: "T-shirt",
-    priceId: requireEnv("STRIPE_PRICE_TSHIRT"),
+    priceId: getEnv("STRIPE_PRICE_TSHIRT"),
   },
   socks: {
     name: "Socks",
-    priceId: requireEnv("STRIPE_PRICE_SOCKS"),
+    priceId: getEnv("STRIPE_PRICE_SOCKS"),
+  },
+  ferrari_key_frame: {
+    name: "Ferrari key in frame",
+    priceId: getEnv("STRIPE_PRICE_FERRARI_KEY_FRAME"),
+  },
+  porsche_key_frame: {
+    name: "Porsche key in frame",
+    priceId: getEnv("STRIPE_PRICE_PORSCHE_KEY_FRAME"),
   },
 };

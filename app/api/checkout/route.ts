@@ -36,6 +36,7 @@ function parseAndValidateItems(items: IncomingItem[]) {
   const normalized = [...combined.entries()].map(([id, quantity]) => {
     const product = CATALOG[id];
     if (!product) throw new Error(`Invalid product ID: ${id}`);
+    if (!product.priceId) throw new Error(`Product not configured: ${id}`);
     return { id, quantity, priceId: product.priceId };
   });
 
