@@ -28,7 +28,7 @@ const METHODS: DeliveryMethod[] = [
   {
     id: "pickup",
     title: "Osobný odber",
-    description: "Dohodneme si odber e-mailom/telefonicky.",
+    description: "Môžete si objednávku vyzdvihnúť osobne na našej prevádzke v rámci otváracích hodín.",
     priceLabel: "Zdarma",
   },
 ];
