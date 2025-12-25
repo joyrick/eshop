@@ -19,14 +19,14 @@ type CartLine = {
 const PRODUCTS: readonly Product[] = [
   {
     id: "ferrari_key_frame",
-    name: "Ferrari key in frame",
-    description: "A premium framed key display piece — a bold desk/office statement.",
+    name: "Ferrari kľúč v ozdobnom ráme",
+    description: "Prémiový darček - ferrari kľúč v elegantnom ráme, ideálny pre cieľavedomých ľudí a fanúšikov značky",
     unitAmount: 2999,
   },
   {
     id: "porsche_key_frame",
-    name: "Porsche key in frame",
-    description: "Clean, minimal framed key display — perfect for enthusiasts.",
+    name: "Porsche kľúč v ozdobnom ráme",
+    description: "Čistý, minimalistický rámik na kľúč - ideálny pre fanúšikov značky Porsche",
     unitAmount: 1999,
   },
 ] as const;
@@ -182,7 +182,7 @@ export default function HomePage() {
             }}
             aria-label="Open cart"
           >
-            Cart ({cartCount})
+            Košík ({cartCount})
           </button>
         </div>
       </header>
@@ -345,10 +345,20 @@ export default function HomePage() {
               <a href="/terms" style={{ color: "inherit", textDecoration: "none" }}>
                 Obchodné podmienky
               </a>
-              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
+              <a
+                href="https://www.humornedarceky.sk/kontakty"
+                style={{ color: "inherit", textDecoration: "none" }}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Kontakty
               </a>
-              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
+              <a
+                href="https://www.humornedarceky.sk/velkoobchodny-predaj"
+                style={{ color: "inherit", textDecoration: "none" }}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Veľkoobchodný predaj
               </a>
             </div>
@@ -370,7 +380,12 @@ export default function HomePage() {
             <div style={{ fontWeight: 800, color: "#fff", marginBottom: 10, letterSpacing: 0.3 }}>Kontakty</div>
             <div style={{ display: "grid", gap: 8, color: "#cbd5e1", lineHeight: 1.6 }}>
               <div style={{ color: "#fff", fontWeight: 700 }}>Štefan Lacko</div>
-              <div style={{ color: "#f87171", fontWeight: 800, letterSpacing: 0.3 }}>0905 486 452</div>
+              <a
+                href="tel:+421905486452"
+                style={{ color: "#f87171", fontWeight: 800, letterSpacing: 0.3, textDecoration: "none" }}
+              >
+                0905 486 452
+              </a>
               <div>9:00 - 18:00</div>
               <a href="mailto:info@humornedarceky.sk" style={{ color: "inherit", textDecoration: "none" }}>
                 info@humornedarceky.sk
