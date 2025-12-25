@@ -122,44 +122,7 @@ export default function HomePage() {
       .filter((l) => l.quantity > 0);
   }, [cart]);
 
-  const checkout = async () => {
-    if (normalizedForCheckout.length === 0) {
-      setIsCartOpen(true);
-      alert("Cart is empty");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: normalizedForCheckout }),
-      });
-
-      const raw = await res.text();
-      let data: any = null;
-      try {
-        data = raw ? JSON.parse(raw) : null;
-      } catch {
-        data = null;
-      }
-
-      if (!res.ok) {
-        const msg = data?.error || raw || `Checkout error (${res.status})`;
-        alert(msg);
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        alert(data?.error || "Checkout error");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // NOTE: Checkout is handled via /checkout (delivery + address step) before Stripe.
 
   // One-page template: product gallery selector + cart sidebar
   const mainProduct = getProduct(selectedProductId);
@@ -379,7 +342,7 @@ export default function HomePage() {
               <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
                 O nás
               </a>
-              <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
+              <a href="/terms" style={{ color: "inherit", textDecoration: "none" }}>
                 Obchodné podmienky
               </a>
               <a href="#" style={{ color: "inherit", textDecoration: "none" }}>
@@ -456,7 +419,7 @@ export default function HomePage() {
               fontSize: 13,
             }}
           >
-            <div>© {new Date().getFullYear()} Frame X. Všetky práva vyhradené.</div>
+            <div>© {new Date().getFullYear()} Frame X DAVDAN s.r.o. Všetky práva vyhradené.</div>
           </div>
         </div>
       </footer>
@@ -597,7 +560,10 @@ export default function HomePage() {
           </div>
 
           <button
-            onClick={checkout}
+            onClick={() => {
+              if (normalizedForCheckout.length === 0) return;
+              window.location.href = "/checkout";
+            }}
             disabled={isLoading || normalizedForCheckout.length === 0}
             style={{
               width: "100%",
@@ -610,11 +576,11 @@ export default function HomePage() {
               fontWeight: 800,
             }}
           >
-            {isLoading ? "Redirecting…" : "Pay (Stripe Checkout)"}
+            Pokračovať
           </button>
 
           <p style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>
-            Stripe charges using server-side Price IDs.
+            Najprv si vyberiete dopravu a vyplníte adresu, potom pokračujete na Stripe platbu.
           </p>
         </div>
       </aside>

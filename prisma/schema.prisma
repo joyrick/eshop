@@ -13,6 +13,12 @@ enum OrderStatus {
   CANCELED
 }
 
+enum DeliveryMethod {
+  PACKETA
+  COURIER
+  PICKUP
+}
+
 model Order {
   id          String      @id
   status      OrderStatus @default(PENDING)
@@ -23,6 +29,10 @@ model Order {
   updatedAt   DateTime    @updatedAt
 
   stripeSessionId String?  @unique
+
+  // Delivery selection (saved after payment verification)
+  deliveryMethod DeliveryMethod?
+  deliveryPrice  Int? // cents
 }
 
 model StripeEvent {
